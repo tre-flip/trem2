@@ -115,13 +115,13 @@ This is used by `trem2-global-mode'."
 ;;;;;;;;;;;;;;;
 (defun trem2-beginning-of-buffer ()
   (interactive)
-  (if (or (eobp) (bobp))
+  (if (or (bobp))
       (pop-global-mark)
     (beginning-of-buffer)))
 
 (defun trem2-end-of-buffer ()
   (interactive)
-  (if (or (eobp) (bobp))
+  (if (or (eobp))
       (pop-global-mark)
     (end-of-buffer)))
 
