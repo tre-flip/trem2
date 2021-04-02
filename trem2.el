@@ -100,12 +100,29 @@ This is used by `trem2-global-mode'."
   "A keymap for fast marking")
 (defvar trem2-format-map (make-sparse-keymap)
   "A keymap for text formatting")
+(defvar trem2-eob-map (make-sparse-keymap)
+  "A keymap for end-of-buffer command (transient)")
 (defvar trem2-register-map (make-sparse-keymap)
   "A keymap for fast advanced editing primitives, like reformat-line, reformat-word etc.")
+
+(defvar trem2-help-mode-map (make-sparse-keymap)
+  "A keymap for displaying bindings without cyrillic characters.")
+(defvar trem2-help-spc-map (make-sparse-keymap)
+  "A keymap for displaying bindings without cyrillic characters.")
 
 ;;;;;;;;;;;;;;;
 ;; UTILITIES ;;
 ;;;;;;;;;;;;;;;
+(defun trem2-beginning-of-buffer ()
+  (if (or (eobp) (bobp))
+      (pop-global-mark)
+    (beginning-of-buffer)))
+
+(defun trem2-end-of-buffer ()
+  (if (or (eobp) (bobp))
+      (pop-global-mark)
+    (end-of-buffer)))
+
 (defun trem2-append-at-eol ()
   "Go to end of line, format it to just one space at the end and leave CMD mode."
   (interactive)
@@ -135,11 +152,6 @@ This is used by `trem2-global-mode'."
                               trem2-shell
                               nil
                               1)))
-
-(defun trem2-set-eval-functions (reg buf)
-  "Sets functions for region and buffer evaluation/compilation"
-  (setq-local trem2-eval-region-f reg)
-  (setq-local trem2-eval-buffer-f buf))
 
 (defun trem2-toggle-case ()
   "Toggle the letter case of current word or text selection.
@@ -653,20 +665,12 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 (defun trem2-help-map ()
   "Display help for trem2's single keystroke keymap"
   (interactive)
-  (which-key-show-full-keymap 'trem2-mode-map))
+  (which-key-show-full-keymap 'trem2-help-mode-map))
 
 (defun trem2-help-map-2 ()
   "Display help for trem2's double keystroke keymap"
   (interactive)
-  (which-key-show-full-keymap 'trem2-spc-map))
-
-(defun trem2-eval-buffer ()
-  (interactive)
-  (command-execute trem2-eval-buffer-f))
-
-(defun trem2-eval-region ()
-  (interactive)
-  (command-execute trem2-eval-region-f))
+  (which-key-show-full-keymap 'trem2-help-spc-map))
 
 (defun trem2-split-line-and-quit ()
   (interactive)
@@ -700,13 +704,19 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 
 (defun trem2-bind-mode-map (key command)
   "Binds a command in the trem-mode-map"
+  ;; bind to actual keymaps
   (define-key trem2-mode-map (kbd key) command)
-  (trem2-bind-rus trem2-mode-map key command))
+  (trem2-bind-rus trem2-mode-map key command)
+  ;; bind to help-keymap
+  (unless (string-equal key "SPC")
+    (define-key trem2-help-mode-map (kbd key) command)))
 
 (defun trem2-bind-spc-map (key command)
   "Binds a command in the trem-mode-spc"
   (define-key trem2-spc-map (kbd key) command)
-  (trem2-bind-rus 'trem2-spc-map key command))
+  (trem2-bind-rus 'trem2-spc-map key command)
+  ;; bind to help-keymap
+  (define-key trem2-help-spc-map (kbd key) command))
 
 (defmacro trem2-bind-transient (transient-keymap key command)
   `(progn (trem2-bind-spc-map ,key (lambda ()
@@ -742,24 +752,29 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 (trem2-bind-mode-map "," #'avy-goto-word-1)
 
 ;; scrolling 
-(trem2-bind-transient trem2-scroll-map "i" #'trem2-scroll-up)
-(trem2-bind-transient trem2-scroll-map "k" #'trem2-scroll-down)
+(trem2-bind-transient trem2-scroll-map "i" #'trem2-scroll-down)
+(trem2-bind-transient trem2-scroll-map "k" #'trem2-scroll-up)
 
 ;; start/end of buffer
-(trem2-bind-mode-map "g" #'beginning-of-buffer)
+;; TODO: g - beginning of buffer, end of buffer if at the beginning of buffer
+;; TODO: SPC g = C-x C-SPC
+(trem2-bind-mode-map "g" #'trem-2-beginning-of-buffer)
 (trem2-bind-spc-map "g"  #'end-of-buffer)
+
+;; recenter
+(trem2-bind-mode-map "a" #'recenter-top-bottom)
 
 ;; goto line
 (trem2-bind-spc-map  ";" #'goto-line)
 ;; search
-(trem2-bind-mode-map "g" #'helm-occur)
+(trem2-bind-mode-map "n" #'helm-occur)
 
 ;; EDITING
 ;; kill
-(trem2-bind-mode-map "f" #'trem2-kill-froward)
+(trem2-bind-mode-map "f" #'trem2-kill-forward)
 (trem2-bind-mode-map "s" #'trem2-kill-backward)
 (trem2-bind-mode-map "r" #'trem2-kill-forward-bracket-text)
-(trem2-bind-mode-map "w" #'trem2-kill-forward-bracket-text)
+(trem2-bind-mode-map "w" #'trem2-kill-backward-bracket-text)
 
 ;; undo, copy, yank, replace selection
 (trem2-bind-mode-map "t" #'undo)
@@ -770,7 +785,7 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 
 ;; comment/uncomment
 (trem2-bind-mode-map "z" #'comment-region)
-(trem2-bind-spc-map  "z" #'comment-region)
+(trem2-bind-spc-map  "z" #'uncomment-region)
 
 ;; query-replace
 (trem2-bind-spc-map  "r" #'query-replace)
@@ -780,7 +795,7 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 
 ;; reformat
 (trem2-bind-mode-map  "b" #'trem2-toggle-case)
-(trem2-bind-transient trem2-format-map "7" #'trem2-reformat-lines)
+(trem2-bind-transient trem2-format-map "7" #'trem2-reformat)
 (trem2-bind-spc-map   "8" #'fill-paragraph)
 
 ;; registers
@@ -795,7 +810,7 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 ;; mark line, paragraph, and whole-buffer
 (trem2-bind-mode-map "7" #'trem2-mark-line)
 (trem2-bind-mode-map "8" #'mark-paragraph)
-(trem2-bind-spc-map  "g" trem2-whole-buffer)
+(trem2-bind-spc-map  "d" trem2-whole-buffer)
 (trem2-bind-spc-map  "h" #'trem2-toggle-highlight)
 
 ;; BUFFER AND WINDOW MANAGEMENT
@@ -813,16 +828,15 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 (trem2-bind-spc-map  "q" #'kill-buffer-and-window)
 
 ;; opening and jumping
-(trem2-bind-spc-map "l" #'helm-find-files)
 (trem2-bind-spc-map "j" #'switch-to-buffer)
 (trem2-bind-spc-map "s" #'save-buffer)
-(trem2-bind-spc-map "f" #'buffer-menu)
+(trem2-bind-spc-map "f" #'helm-find-files)
 
 ;; COMMANDS AND EVALUATION
 (trem2-bind-mode-map "x" #'helm-M-x)
 (trem2-bind-transient trem2-repeat-map "x" #'repeat)
-(trem2-bind-spc-map "c" #'trem-eval-buffer)
-(trem2-bind-spc-map "e" #'trem-eval-region)
+(trem2-bind-spc-map "c" trem2-eval-buffer)
+(trem2-bind-spc-map "e" trem2-eval-region)
 (trem2-bind-spc-map "p" #'trem2-shell-pipe-lines-or-regions)
 
 ;; SHELLS AND TERMINALS
@@ -835,6 +849,10 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 (trem2-bind-mode-map "9" #'trem2-open-below)
 (trem2-bind-mode-map "0" #'trem2-open-above)
 (trem2-bind-spc-map  "9" #'trem2-split-line-and-quit)
+
+;; HELP
+(trem2-bind-mode-map "`" #'trem2-help-map)
+(trem2-bind-spc-map "`" #'trem2-help-map-2)
 
 ;;;###autoload
 (defun trem2-setup-keybinds ()
