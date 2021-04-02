@@ -114,11 +114,13 @@ This is used by `trem2-global-mode'."
 ;; UTILITIES ;;
 ;;;;;;;;;;;;;;;
 (defun trem2-beginning-of-buffer ()
+  (interactive)
   (if (or (eobp) (bobp))
       (pop-global-mark)
     (beginning-of-buffer)))
 
 (defun trem2-end-of-buffer ()
+  (interactive)
   (if (or (eobp) (bobp))
       (pop-global-mark)
     (end-of-buffer)))
@@ -758,8 +760,8 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 ;; start/end of buffer
 ;; TODO: g - beginning of buffer, end of buffer if at the beginning of buffer
 ;; TODO: SPC g = C-x C-SPC
-(trem2-bind-mode-map "g" #'trem-2-beginning-of-buffer)
-(trem2-bind-spc-map "g"  #'end-of-buffer)
+(trem2-bind-mode-map "g" #'trem2-beginning-of-buffer)
+(trem2-bind-transient trem2-eob-map "g"  #'trem2-end-of-buffer)
 
 ;; recenter
 (trem2-bind-mode-map "a" #'recenter-top-bottom)
