@@ -23,6 +23,7 @@
 ;;;;;;;;;;;;;;;
 ;; VARIABLES ;;
 ;;;;;;;;;;;;;;;
+(defvar trem2--mode-line-message " CMD")
 
 (defvar trem2-excluded-modes nil)
 
@@ -64,7 +65,7 @@ With a prefix argument ARG, enable `trem2-mode' if ARG is
 positive, and disable it otherwise.  If called from Lisp, enable
 the mode if ARG is omitted or NIL, and toggle it if ARG is
 `toggle'."
-  nil " CMD" trem2-mode-map
+  nil (:eval trem2--mode-line-message) trem2-mode-map
   (if trem2-mode
       (setq-local cursor-type trem2-cursor-type)
     (setq-local cursor-type (default-value 'cursor-type))))
@@ -115,13 +116,13 @@ This is used by `trem2-global-mode'."
 ;;;;;;;;;;;;;;;
 (defun trem2-beginning-of-buffer ()
   (interactive)
-  (if (or (bobp))
+  (if (bobp)
       (pop-global-mark)
     (beginning-of-buffer)))
 
 (defun trem2-end-of-buffer ()
   (interactive)
-  (if (or (eobp))
+  (if (eobp)
       (pop-global-mark)
     (end-of-buffer)))
 
@@ -720,10 +721,14 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
   ;; bind to help-keymap
   (define-key trem2-help-spc-map (kbd key) command))
 
-(defmacro trem2-bind-transient (transient-keymap key command)
+(defmacro trem2-bind-transient (transient-keymap key command &optional !modeline-indicator)
   `(progn (trem2-bind-spc-map ,key (lambda ()
-				    (interactive)
-				    (set-transient-map ,transient-keymap t)
+				     (interactive)
+				     (when ,!modeline-indicator
+				       (setq trem2--mode-line-message (concat " CMD/" ,!modeline-indicator)))
+				     (set-transient-map ,transient-keymap
+							t
+							#'(lambda () (setq trem2--mode-line-message " CMD")))
 				    (command-execute ,command)))
 	  (define-key ,transient-keymap ,key ,command)))
 
@@ -754,8 +759,8 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 (trem2-bind-mode-map "," #'avy-goto-word-1)
 
 ;; scrolling 
-(trem2-bind-transient trem2-scroll-map "i" #'trem2-scroll-down)
-(trem2-bind-transient trem2-scroll-map "k" #'trem2-scroll-up)
+(trem2-bind-transient trem2-scroll-map "i" #'trem2-scroll-down "scroll")
+(trem2-bind-transient trem2-scroll-map "k" #'trem2-scroll-up "scroll")
 
 ;; start/end of buffer
 ;; TODO: g - beginning of buffer, end of buffer if at the beginning of buffer
@@ -797,12 +802,12 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 
 ;; reformat
 (trem2-bind-mode-map  "b" #'trem2-toggle-case)
-(trem2-bind-transient trem2-format-map "7" #'trem2-reformat)
+(trem2-bind-transient trem2-format-map "7" #'trem2-reformat "fmt-line")
 (trem2-bind-spc-map   "8" #'fill-paragraph)
 
 ;; registers
 (trem2-bind-transient trem2-register-map "a" #'trem2-append-to-register-1)
-(trem2-bind-transient trem2-register-map "n" #'trem2-paste-from-register-1)
+(trem2-bind-transient trem2-register-map "n" #'trem2-paste-from-register-1 "register-paste")
 
 ;; MARKING
 (trem2-bind-mode-map "e" #'er/expand-region)
