@@ -865,7 +865,10 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
     (progn
       (trem2-bind-mode-map "k" #'previous-line)
       (trem2-bind-mode-map "," #'next-line    )
-      (trem2-bind-mode-map "i" #'avy-goto-word-1))))
+      (trem2-bind-mode-map "i" #'avy-goto-word-1)
+      ;; scrolling:
+      (trem2-bind-transient trem2-scroll-map "k" #'trem2-scroll-down)
+      (trem2-bind-transient trem2-scroll-map "," #'trem2-scroll-up))))
 
 (provide 'trem2)
 ;;; trem2.el ends here
