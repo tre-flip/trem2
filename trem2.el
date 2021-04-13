@@ -65,7 +65,7 @@ With a prefix argument ARG, enable `trem2-mode' if ARG is
 positive, and disable it otherwise.  If called from Lisp, enable
 the mode if ARG is omitted or NIL, and toggle it if ARG is
 `toggle'."
-  nil (:eval trem2--mode-line-message) trem2-mode-map
+  nil " CMD" trem2-mode-map
   (if trem2-mode
       (setq-local cursor-type trem2-cursor-type)
     (setq-local cursor-type (default-value 'cursor-type))))
@@ -724,11 +724,7 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 (defmacro trem2-bind-transient (transient-keymap key command &optional !modeline-indicator)
   `(progn (trem2-bind-spc-map ,key (lambda ()
 				     (interactive)
-				     (when ,!modeline-indicator
-				       (setq trem2--mode-line-message (concat " CMD/" ,!modeline-indicator)))
-				     (set-transient-map ,transient-keymap
-							t
-							#'(lambda () (setq trem2--mode-line-message " CMD")))
+				     (set-transient-map ,transient-keymap t)
 				    (command-execute ,command)))
 	  (define-key ,transient-keymap ,key ,command)))
 
@@ -759,8 +755,8 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 (trem2-bind-mode-map "," #'avy-goto-word-1)
 
 ;; scrolling 
-(trem2-bind-transient trem2-scroll-map "i" #'trem2-scroll-down "scroll")
-(trem2-bind-transient trem2-scroll-map "k" #'trem2-scroll-up "scroll")
+(trem2-bind-transient trem2-scroll-map "i" #'trem2-scroll-down)
+(trem2-bind-transient trem2-scroll-map "k" #'trem2-scroll-up)
 
 ;; start/end of buffer
 ;; TODO: g - beginning of buffer, end of buffer if at the beginning of buffer
@@ -802,12 +798,12 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 
 ;; reformat
 (trem2-bind-mode-map  "b" #'trem2-toggle-case)
-(trem2-bind-transient trem2-format-map "7" #'trem2-reformat "fmt-line")
+(trem2-bind-transient trem2-format-map "7" #'trem2-reformat)
 (trem2-bind-spc-map   "8" #'fill-paragraph)
 
 ;; registers
 (trem2-bind-transient trem2-register-map "a" #'trem2-append-to-register-1)
-(trem2-bind-transient trem2-register-map "n" #'trem2-paste-from-register-1 "register-paste")
+(trem2-bind-transient trem2-register-map "n" #'trem2-paste-from-register-1)
 
 ;; MARKING
 (trem2-bind-mode-map "e" #'er/expand-region)
@@ -862,10 +858,14 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 (trem2-bind-spc-map "`" #'trem2-help-map-2)
 
 ;;;###autoload
-(defun trem2-setup-keybinds ()
+(defun trem2-setup-keybinds (&key jiran)
   "Set up default trem2 keybindings for normal mode."
   (global-subword-mode 1)
-  )
+  (when jiran
+    (progn
+      (trem2-bind-mode-map "k" #'previous-line)
+      (trem2-bind-mode-map "," #'next-line    )
+      (trem2-bind-mode-map "i" #'avy-goto-word-1))))
 
 (provide 'trem2)
 ;;; trem2.el ends here
