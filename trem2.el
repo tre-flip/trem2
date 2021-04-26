@@ -130,9 +130,7 @@ This is used by `trem2-global-mode'."
   "Go to end of line, format it to just one space at the end if it's not blank and leave CMD mode."
   (interactive)
   (end-of-line)
-  ;; (unless (looking-at-p "[[:space:]]*$") 
-  ;;   (just-one-space))
-  (unless (looking-back "^[ \t]+$") 
+  (unless (looking-back "^[ \t]*$") 
     (just-one-space))
   (trem2-global-mode -1))
 
