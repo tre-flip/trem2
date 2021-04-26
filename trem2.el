@@ -129,11 +129,11 @@ This is used by `trem2-global-mode'."
 (defun trem2-append-at-eol ()
   "Go to end of line, format it to just one space at the end if it's not blank and leave CMD mode."
   (interactive)
-  (if (looking-at-p "[[:space:]]*$")
-      (end-of-line)
-    (progn (end-of-line)
-	   (just-one-space)
-	   ))
+  (end-of-line)
+  ;; (unless (looking-at-p "[[:space:]]*$") 
+  ;;   (just-one-space))
+  (unless (looking-back "^[ \t]+$") 
+    (just-one-space))
   (trem2-global-mode -1))
 
 (defun trem2-open-above ()
