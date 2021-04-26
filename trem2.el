@@ -127,10 +127,8 @@ This is used by `trem2-global-mode'."
     (end-of-buffer)))
 
 (defun trem2-append-at-eol ()
-  "Go to end of line, format it to just one space at the end and leave CMD mode."
+  "Go to end of line, format it to just one space at the end if it's not blank and leave CMD mode."
   (interactive)
-  (back-to-indentation)
-  ;; TODO: convert to a single regex
   (if (looking-at-p "[[:space:]]*$")
       (end-of-line)
     (progn (end-of-line)
