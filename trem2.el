@@ -809,7 +809,7 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 ;; MARKING
 (trem2-bind-mode-map "e" #'er/expand-region)
 (trem2-bind-mode-map "d" #'trem2-toggle-mark)
-(trem2-bind-spc-map  "," #'exchange-point-and-mark)
+(trem2-bind-spc-map  "i" #'exchange-point-and-mark)
 
 ;; mark line, paragraph, and whole-buffer
 (trem2-bind-mode-map "7" #'trem2-mark-line)
