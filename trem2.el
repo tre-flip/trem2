@@ -126,12 +126,17 @@ This is used by `trem2-global-mode'."
       (pop-global-mark)
     (end-of-buffer)))
 
-(defun trem2-append-at-eol ()
+(defun trem2-append-at-eol-space ()
   "Go to end of line, format it to just one space at the end if it's not blank and leave CMD mode."
   (interactive)
   (end-of-line)
   (unless (looking-back "^[ \t]*$") 
     (just-one-space))
+  (trem2-global-mode -1))
+
+(defun trem2-append-at-eol ()
+  (interactive)
+  (end-of-line)
   (trem2-global-mode -1))
 
 (defun trem2-open-above ()
@@ -820,11 +825,11 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 ;; BUFFER AND WINDOW MANAGEMENT
 (trem2-bind-mode-map "1" #'make-frame)
 (trem2-bind-mode-map "2" #'delete-window)
+(trem2-bind-spc-map "2" #'delete-other-windows)
 (trem2-bind-mode-map "3" #'other-window)
 (trem2-bind-mode-map "4" #'split-window-right)
 (trem2-bind-mode-map "5" #'split-window-below)
-(trem2-bind-mode-map "6" #'delete-other-windows)
-;; (trem2-bind-spc-map "6" ...)
+
 
 ;; killing buffers
 (trem2-bind-mode-map "q" #'kill-buffer)
@@ -848,7 +853,8 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 (trem2-bind-spc-map "y" #'(lambda () (interactive) (vterm)))
 
 ;; ENTER INSERT MODE
-(trem2-bind-mode-map "y" #'trem2-append-at-eol)
+(trem2-bind-mode-map "y" #'trem2-append-at-eol-space)
+(trem2-bind-mode-map "6" #'trem2-append-at-eol)
 (trem2-bind-mode-map "/" #'trem2-change)
 (trem2-bind-mode-map "9" #'trem2-open-below)
 (trem2-bind-mode-map "0" #'trem2-open-above)
