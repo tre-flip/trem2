@@ -27,16 +27,16 @@
 
 (defvar trem2-excluded-modes nil)
 
-(defvar trem2-eval-buffer #'eval-buffer)
-(defvar trem2-eval-region #'eval-region)
-(defvar trem2-shell "bash")
+(setq-default trem2-eval-buffer #'eval-buffer)
+(setq-default trem2-eval-region #'eval-region)
+(setq-default trem2-shell "bash")
 
 ;; expected to be set to #'er/expand-region from expand-region package:
-(defvar-local trem2-mark #'mark-word)
+(setq-default trem2-mark #'mark-word)
 
 ;; default is the line/paragraph, TODO: DON'T FORGET TO SET LATER:
-(defvar-local trem2-text-object-next #'ignore)
-(defvar-local trem2-text-object-prev #'ignore)
+(setq-default trem2-text-object-next #'ignore)
+(setq-default trem2-text-object-prev #'ignore)
 
 ;; expected to execute "clear" or analogs in terminal modes
 (defvar-local trem2-whole-buffer #'mark-whole-buffer)
