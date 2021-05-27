@@ -27,9 +27,9 @@
 
 (defvar trem2-excluded-modes nil)
 
-(defvar-local trem2-eval-buffer #'eval-buffer)
-(defvar-local trem2-eval-region #'eval-region)
-(defvar-local trem2-shell "bash")
+(defvar trem2-eval-buffer #'eval-buffer)
+(defvar trem2-eval-region #'eval-region)
+(defvar trem2-shell "bash")
 
 ;; expected to be set to #'er/expand-region from expand-region package:
 (defvar-local trem2-mark #'mark-word)
@@ -114,6 +114,19 @@ This is used by `trem2-global-mode'."
 ;;;;;;;;;;;;;;;
 ;; UTILITIES ;;
 ;;;;;;;;;;;;;;;
+(defun trem2-mark-block ()
+  "Select the current/next block of text between blank lines.
+If region is active, extend selection downward by block."
+  (interactive)
+  (if (use-region-p)
+      (re-search-forward "\n[ \t]*\n" nil "move")
+    (progn
+      (skip-chars-forward " \n\t")
+      (when (re-search-backward "\n[ \t]*\n" nil "move")
+        (re-search-forward "\n[ \t]*\n"))
+      (push-mark (point) t t)
+      (re-search-forward "\n[ \t]*\n" nil "move"))))
+
 (defun trem2-beginning-of-buffer ()
   (interactive)
   (if (bobp)
@@ -749,8 +762,8 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 (trem2-bind-mode-map "o" #'forward-word)
 
 ;; text-object navigation
-(setq-default trem2-text-object-next #'trem2-end-of-line-or-block)
-(setq-default trem2-text-object-prev #'trem2-beginning-of-line-or-block)
+(setq trem2-text-object-next #'trem2-end-of-line-or-block)
+(setq trem2-text-object-prev #'trem2-beginning-of-line-or-block)
 
 (trem2-bind-mode-map ";" trem2-text-object-next)
 (trem2-bind-mode-map "h" trem2-text-object-prev)
@@ -818,7 +831,7 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 
 ;; mark line, paragraph, and whole-buffer
 (trem2-bind-mode-map "7" #'trem2-mark-line)
-(trem2-bind-mode-map "8" #'mark-paragraph)
+(trem2-bind-mode-map "8" #'trem2-mark-block)
 (trem2-bind-spc-map  "d" trem2-whole-buffer)
 (trem2-bind-spc-map  "h" #'trem2-toggle-highlight)
 
@@ -843,9 +856,9 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 
 ;; COMMANDS AND EVALUATION
 (trem2-bind-mode-map "x" #'helm-M-x)
-(trem2-bind-transient trem2-repeat-map "x" #'repeat)
-(trem2-bind-spc-map "c" trem2-eval-buffer)
-(trem2-bind-spc-map "e" trem2-eval-region)
+(trem2-bind-mode-map "6" #'repeat)
+(trem2-bind-spc-map "c" (lambda () (interactive) (command-execute trem2-eval-buffer)))
+(trem2-bind-spc-map "e" (lambda () (interactive) (command-execute trem2-eval-region)))
 (trem2-bind-spc-map "p" #'trem2-shell-pipe-lines-or-regions)
 
 ;; SHELLS AND TERMINALS
@@ -853,8 +866,8 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 (trem2-bind-spc-map "y" #'(lambda () (interactive) (vterm)))
 
 ;; ENTER INSERT MODE
-(trem2-bind-mode-map "y" #'trem2-append-at-eol-space)
-(trem2-bind-mode-map "6" #'trem2-append-at-eol)
+(trem2-bind-mode-map "y" #'trem2-append-at-eol)
+;; (trem2-bind-mode-map "6" #'trem2-append-at-eol)
 (trem2-bind-mode-map "/" #'trem2-change)
 (trem2-bind-mode-map "9" #'trem2-open-below)
 (trem2-bind-mode-map "0" #'trem2-open-above)
