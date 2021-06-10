@@ -230,15 +230,11 @@ The list of brackets to jump to is defined by `trem3-right-brackets'."
 ;; SHELL ;;
 ;;;;;;;;;;;
 
-(defun trem3-shell-pipe-lines-or-regions ()
+(defun trem3-shell-pipe ()
   "Run a shell command on each of the current regions separately and replace the current regions with its output."
   (interactive)
-  (mc/for-each-cursor-ordered
-     (shell-command-on-region (mc/cursor-beg cursor)
-                              (mc/cursor-end cursor)
-                              trem3-shell
-                              nil
-                              1)))
+  (atp-apply #'(lambda (beg end)
+		 (shell-command-on-region beg end trem3-shell nil 1))))
 
 ;;;;;;;;;;;;;
 ;; MARKING ;;
@@ -266,6 +262,7 @@ The list of brackets to jump to is defined by `trem3-right-brackets'."
 ;; EDITING ;;
 ;;;;;;;;;;;;;
 
+;; THIS FUNCTION IS DEPRECATED, REMOVE:
 (defun trem3-replace-selection ()
   "Replace selection with killed text."
   (interactive)
@@ -637,11 +634,12 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
       (scan-error (delete-char -1))))
    (t (delete-char 1))))
 
-
 (defun trem3-change ()
   "Kill forward and exit CMD mode"
   (interactive)
-  (atp-kill)
+  (let ((atp-include-newline nil))
+    (atp-update-thing)
+    (atp-apply #'delete-region))
   (trem3-global-mode -1))
 
 ;;;;;;;;;;
@@ -749,7 +747,7 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 (trem3-bind-mode-map "c" #'atp-copy)
 (trem3-bind-mode-map "v" #'yank)
 (trem3-bind-spc-map  "v" #'yank-pop)
-(trem3-bind-mode-map "p" #'trem3-replace-selection)
+(trem3-bind-mode-map "p" #'atp-replace-from-kill-ring)
 
 ;; comment/uncomment
 (trem3-bind-mode-map "z" #'atp-toggle-comment)
@@ -766,8 +764,8 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 (trem3-bind-spc-map   "8" #'fill-paragraph)
 
 ;; registers
-(trem3-bind-transient trem3-register-map "a" #'trem3-append-to-register-1)
-(trem3-bind-transient trem3-register-map "n" #'trem3-paste-from-register-1)
+;; (trem3-bind-transient trem3-register-map "a" #'trem3-append-to-register-1)
+(trem3-bind-transient trem3-register-map "n" #'helm-show-kill-ring)
 
 ;; MARKING
 (trem3-bind-mode-map "e" #'atp-kill)
@@ -803,8 +801,8 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 (trem3-bind-mode-map "x" #'helm-M-x)
 (trem3-bind-mode-map "6" #'repeat)
 (trem3-bind-spc-map "c" (lambda () (interactive) (command-execute trem3-eval-buffer)))
-(trem3-bind-spc-map "e" (lambda () (interactive) (command-execute trem3-eval-region)))
-(trem3-bind-spc-map "p" #'trem3-shell-pipe-lines-or-regions)
+(trem3-bind-spc-map "e" (lambda () (interactive) (atp-apply trem3-eval-region)))
+(trem3-bind-spc-map "p" #'trem3-shell-pipe)
 
 ;; SHELLS AND TERMINALS
 (trem3-bind-spc-map "t" #'eshell)
