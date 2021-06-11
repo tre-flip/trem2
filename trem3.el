@@ -132,35 +132,75 @@ This is used by `trem3-global-mode'."
 ;; NAVIGATION ;;
 ;;;;;;;;;;;;;;;;
 
-(defun trem3-beginning-of-buffer ()
+(defun trem3-cycle-buffer-bounds ()
+  "Jumps to:
+Beginning of buffer when called first time.
+End of buffer on subsequent call.
+Initial position before first jump on next subsequent call."
   (interactive)
-  (if (bobp)
+  (when (not (eq last-command this-command))
+    (put this-command 'state 0))
+  (cond
+     ;; on first call navigate to the beginnig of buffer
+     ((equal 0 (get this-command 'state))
+      (beginning-of-buffer)
+      (put this-command 'state 1))
+     ;; on second subsequent call navigate to the end of buffer
+     ((equal 1 (get this-command 'state))
       (pop-global-mark)
-    (beginning-of-buffer)))
+      (end-of-buffer)
+      (put this-command 'state 2))
+     ;; on third subsequent call navigate back to starting position
+     ((equal 2 (get this-command 'state))
+      (pop-global-mark)
+      (put this-command 'state 0))))
 
-(defun trem3-end-of-buffer ()
-  (interactive)
-  (if (eobp)
-      (pop-global-mark)
-    (end-of-buffer)))
+;; scrolling 
+(defvar trem3-scroll-length 2
+  "Amount of lines, scrolled per one scroll command.")
 
 (defun trem3-scroll-up ()
+  "Scroll up by `trem3-scroll-length' lines."
   (interactive)
-  (scroll-up 2))
+  (scroll-up trem3-scroll-length))
+
 (defun trem3-scroll-down ()
+  "Scroll down by `trem3-scroll-length' lines."
   (interactive)
-  (scroll-down 2))
+  (scroll-down trem3-scroll-length))
 
 (defun trem3-beginning-of-line-or-paragraph ()
-  "Move cursor to beginning of line or previous paragraph."
+  "Move cursor to beginning of line text. 
+If the cursor is at the beginning of line text, call beginning-of-line
+If the cursor is at the beginning of line call backward-paragraph."
   (interactive)
-  (if (or (equal (point)(line-beginning-position))
-          (eq last-command this-command))
-      (backward-paragraph)
-    (beginning-of-line-text)))
+  (when (not (eq last-command this-command))
+    (put this-command 'state 0))
+  (cond
+   ((or (equal (point) (line-beginning-position))
+        (equal 2 (get this-command 'state)))
+    (put this-command 'state 0)
+    (backward-paragraph))
+   ((equal 0 (get this-command 'state))
+    (put this-command 'state 1)
+    (beginning-of-line-text))
+   ((equal 1 (get this-command 'state))
+    (put this-command 'state 2)
+    (beginning-of-line))))
+
+;; (defun trem3-beginning-of-line-or-paragraph ()
+;;   "Move cursor to beginning of line text. 
+;; If the cursor is at the beginning of line text, call beginning-of-line
+;; If the cursor is at the beginning of line call backward-paragraph."
+;;   (interactive)
+;;   (if (or (equal (point) (line-beginning-position))
+;;           (eq last-command this-command))
+;;       (backward-paragraph)
+;;     (beginning-of-line-text)))
 
 (defun trem3-end-of-line-or-paragraph ()
-  "Move cursor to beginning of line or previous paragraph."
+  "Move cursor to end of line. 
+If cursor is at the end of line text, call forward-paragraph."
   (interactive)
   (if (or (equal (point) (line-end-position))
           (eq last-command this-command))
@@ -172,7 +212,6 @@ This is used by `trem3-global-mode'."
 The list of punctuations to jump to is defined by `trem3-punctuation-regex'"
   (interactive "p")
   (re-search-forward trem3-punctuation-regex nil t n))
-
 (defun trem3-backward-punct (&optional n)
   "Move cursor to the previous occurrence of punctuation.
 See `trem3-forward-punct'"
@@ -204,24 +243,27 @@ The list of brackets to jump to is defined by `trem3-right-brackets'."
   (trem3-global-mode -1))
 
 (defun trem3-append-at-eol ()
+  "Go to end of line and exit trem3."
   (interactive)
   (end-of-line)
   (trem3-global-mode -1))
 
 (defun trem3-open-above ()
+  "Go to beginning of line, then open line above and exit trem3."
   (interactive)
   (beginning-of-line)
   (open-line 1)
   (trem3-global-mode -1))
 
 (defun trem3-open-below ()
-  "Go to end of line, then newline-and-indent."
+  "Go to end of line, then newline-and-indent and exit trem3."
   (interactive)
   (move-end-of-line nil)
   (newline-and-indent)
   (trem3-global-mode -1))
 
-(defun trem3-split-line-and-quit ()
+(defun trem3-append-split-line ()
+  "Split line and exit trem3."
   (interactive)
   (split-line)
   (trem3-global-mode -1))
@@ -231,7 +273,8 @@ The list of brackets to jump to is defined by `trem3-right-brackets'."
 ;;;;;;;;;;;
 
 (defun trem3-shell-pipe ()
-  "Run a shell command on each of the current regions separately and replace the current regions with its output."
+  "Run a shell command on highlighted thing replace thing with its output.
+Things are identified and highlighted by `atp-mode'."
   (interactive)
   (atp-apply #'(lambda (beg end)
 		 (shell-command-on-region beg end trem3-shell nil 1))))
@@ -262,15 +305,8 @@ The list of brackets to jump to is defined by `trem3-right-brackets'."
 ;; EDITING ;;
 ;;;;;;;;;;;;;
 
-;; THIS FUNCTION IS DEPRECATED, REMOVE:
-(defun trem3-replace-selection ()
-  "Replace selection with killed text."
-  (interactive)
-  (if (use-region-p)
-      (progn (delete-region (region-beginning) (region-end))
-	         (yank))
-    (progn (delete-region (point) (1+ (point)))
-	       (yank))))
+;; enable indentation advice provided by atp
+(atp-enable-thing-indentation)
 
 (defun trem3-delete-blank-lines ()
   "Delete all newline around cursor."
@@ -477,7 +513,6 @@ If @to-chars is equal to string “none”, the brackets are deleted."
                     (overlay-put (make-overlay (match-beginning 0) (match-end 0)) 'face 'highlight)
                     (replace-match $toRight "FIXEDCASE" "LITERAL")))))))))))
 
-
 (defun trem3-delete-blank-lines ()
   "Delete all newline around cursor."
   (interactive)
@@ -520,42 +555,6 @@ If `universal-argument' is called first, use the number value for min length of 
             (re-search-forward " +" nil "move")
           (when (> (- (point) (line-beginning-position)) $minlen)
             (replace-match "\n" )))))))
-
-(defun trem3-reformat-lines ( &optional @length)
-  "Reformat current text block or selection into short lines or 1 long line.
-When called for the first time, change to one long line. Second call change it to multiple short lines. Repeated call toggles.
-If `universal-argument' is called first, use the number value for min length of line. By default, it's 70."
-  (interactive)
-  ;; This command symbol has a property “'is-longline-p”, the possible values are t and nil. This property is used to easily determine whether to compact or uncompact, when this command is called again
-  (let* (
-         (@length (if @length
-                      @length
-                    (if current-prefix-arg (prefix-numeric-value current-prefix-arg) fill-column )))
-         (is-longline-p
-          (if (eq last-command this-command)
-              (get this-command 'is-longline-p)
-            nil))
-         ($blanks-regex "\n[ \t]*\n")
-         $p1 $p2
-         )
-    (if (use-region-p)
-         (setq $p1 (region-beginning) $p2 (region-end))
-      (save-excursion
-        (if (re-search-backward $blanks-regex nil "move")
-            (progn (re-search-forward $blanks-regex)
-                   (setq $p1 (point)))
-          (setq $p1 (point)))
-        (if (re-search-forward $blanks-regex nil "move")
-            (progn (re-search-backward $blanks-regex)
-                   (setq $p2 (point)))
-          (setq $p2 (point)))))
-    (progn
-      (if current-prefix-arg
-          (trem3-reformat-to-multi-lines $p1 $p2 @length)
-        (if is-longline-p
-            (trem3-reformat-to-multi-lines $p1 $p2 @length)
-          (trem3-reformat-whitespaces-to-one-space $p1 $p2)))
-      (put this-command 'is-longline-p (not is-longline-p)))))
 
 (defun trem3-clean-empty-lines ()
   "Replace repeated blank lines to just 1.
@@ -635,7 +634,8 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
    (t (delete-char 1))))
 
 (defun trem3-change ()
-  "Kill forward and exit CMD mode"
+  "Kill hightlighted thing and exit trem3.
+Thing is identified by `atp-mode'"
   (interactive)
   (let ((atp-include-newline nil))
     (atp-update-thing)
@@ -647,12 +647,12 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 ;;;;;;;;;;
 
 (defun trem3-help-map ()
-  "Display help for trem3's single keystroke keymap"
+  "Display help for trem3's single keystroke keymap via `which-key'"
   (interactive)
   (which-key-show-full-keymap 'trem3-help-mode-map))
 
 (defun trem3-help-map-2 ()
-  "Display help for trem3's double keystroke keymap"
+  "Display help for trem3's double keystroke keymap via `which-key'"
   (interactive)
   (which-key-show-full-keymap 'trem3-help-spc-map))
 
@@ -712,9 +712,11 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 (trem3-bind-mode-map ";" #'trem3-end-of-line-or-paragraph)
 (trem3-bind-mode-map "h" #'trem3-beginning-of-line-or-paragraph)
 
-;; parens navigation and avy
+;; parens, punctuation navigation and avy
 (trem3-bind-mode-map "m" #'trem3-backward-left-bracket)
 (trem3-bind-mode-map "." #'trem3-forward-right-bracket)
+(trem3-bind-spc-map "u" #'trem3-backward-punct)
+(trem3-bind-spc-map "o" #'trem3-forward-punct)
 (trem3-bind-mode-map "," #'avy-goto-word-1)
 
 ;; scrolling 
@@ -722,10 +724,7 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 (trem3-bind-transient trem3-scroll-map "k" #'trem3-scroll-up)
 
 ;; start/end of buffer
-;; TODO: g - beginning of buffer, end of buffer if at the beginning of buffer
-;; TODO: SPC g = C-x C-SPC
-(trem3-bind-mode-map "g" #'trem3-beginning-of-buffer)
-(trem3-bind-transient trem3-eob-map "g"  #'trem3-end-of-buffer)
+(trem3-bind-mode-map "8" #'trem3-cycle-buffer-bounds)
 
 ;; recenter
 (trem3-bind-mode-map "a" #'recenter-top-bottom)
@@ -763,19 +762,18 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 (trem3-bind-transient trem3-format-map "7" #'trem3-reformat)
 (trem3-bind-spc-map   "8" #'fill-paragraph)
 
-;; registers
-;; (trem3-bind-transient trem3-register-map "a" #'trem3-append-to-register-1)
+;; kill ring
 (trem3-bind-transient trem3-register-map "n" #'helm-show-kill-ring)
 
 ;; MARKING
 (trem3-bind-mode-map "e" #'atp-kill)
 (trem3-bind-mode-map "d" #'trem3-toggle-mark)
-(trem3-bind-spc-map  "i" #'exchange-point-and-mark)
+
+(trem3-bind-spc-map  "i" #'(lambda () (interactive) (message "trem3: 'SPC i' is vacant.")))
 
 ;; mark line, paragraph, and whole-buffer
 (trem3-bind-mode-map "7" #'trem3-mark-line)
-(trem3-bind-mode-map "8" #'atp-mark)
-(trem3-bind-spc-map  "d" #'atp-mark)
+(trem3-bind-mode-map "g" #'atp-mark)
 (trem3-bind-spc-map  "h" #'trem3-toggle-highlight)
 
 ;; BUFFER AND WINDOW MANAGEMENT
@@ -814,7 +812,7 @@ Works on whole buffer or text selection, respects `narrow-to-region'."
 (trem3-bind-mode-map "/" #'trem3-change)
 (trem3-bind-mode-map "9" #'trem3-open-below)
 (trem3-bind-mode-map "0" #'trem3-open-above)
-(trem3-bind-spc-map  "9" #'trem3-split-line-and-quit)
+(trem3-bind-spc-map  "9" #'trem3-append-split-line)
 
 ;; HELP
 (trem3-bind-mode-map "`" #'trem3-help-map)
